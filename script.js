@@ -54,21 +54,30 @@
 
     btn.disabled = true;
     btn.textContent = 'Отправляем...';
+    const fallback = document.getElementById('formFallback');
+    if (fallback) fallback.hidden = true;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
 
     try {
       const resp = await fetch(LEAD_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       btn.textContent = 'Заявка отправлена ✓';
       form.reset();
-    } catch (err) {
-      console.error(err);
-      btn.textContent = 'Ошибка, попробуйте ещё раз';
-    } finally {
       setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error(err);
+      btn.textContent = 'Не получилось отправить';
+      btn.disabled = false;
+      if (fallback) fallback.hidden = false;
     }
   });
 
